@@ -27,7 +27,8 @@ export default function ResultPage() {
 
   const handleExportPDF = () => {
     if (result?._id) {
-        window.location.href = `http://localhost:5000/api/report/${result._id}`;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        window.location.href = `${apiUrl}/api/report/${result._id}`;
     }
   };
 

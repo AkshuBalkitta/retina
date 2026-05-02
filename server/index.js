@@ -13,6 +13,12 @@ const Analysis = require('./models/Analysis');
 
 const app = express();
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
+
 // Storage Configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -40,11 +46,12 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
         // Forward to Python AI Service
+        const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8080';
         const formData = new FormData();
         formData.append('file', fs.createReadStream(req.file.path));
 
-        console.log('Forwarding to Python AI Service...');
-        const aiResponse = await axios.post('http://127.0.0.1:8080/analyze', formData, {
+        console.log(`Forwarding to Python AI Service at ${AI_SERVICE_URL}...`);
+        const aiResponse = await axios.post(`${AI_SERVICE_URL}/analyze`, formData, {
             headers: { ...formData.getHeaders() }
         });
 

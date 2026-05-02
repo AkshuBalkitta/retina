@@ -43,25 +43,34 @@ mongoose.connect(MONGO_URI)
 // 1. ANALYSIS ROUTE (Proxy to Python AI Service)
 app.post('/api/analyze', upload.single('file'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        console.log("STEP 1: Received analysis request");
+        if (!req.file) {
+            console.warn("STEP 1.1: No file in request");
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
 
         // Forward to Python AI Service
         const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8080';
         const formData = new FormData();
         formData.append('file', fs.createReadStream(req.file.path));
 
-        console.log(`Forwarding to Python AI Service at ${AI_SERVICE_URL}...`);
+        console.log(`STEP 2: Forwarding to Python AI Service at ${AI_SERVICE_URL}...`);
         const aiResponse = await fetch(`${AI_SERVICE_URL}/analyze`, {
             method: 'POST',
             body: formData,
             headers: formData.getHeaders()
         });
 
+        console.log("STEP 3: AI response status =", aiResponse.status);
+
         if (!aiResponse.ok) {
-            throw new Error(`AI Service responded with ${aiResponse.status}`);
+            const errorText = await aiResponse.text();
+            console.error("STEP 3.1: AI Service Error Details =", errorText);
+            throw new Error(`AI Service responded with ${aiResponse.status}: ${errorText}`);
         }
 
         const result = await aiResponse.json();
+        console.log("STEP 4: AI result =", JSON.stringify(result, null, 2));
 
         // Save to MongoDB
         const newRecord = new Analysis({
@@ -75,12 +84,18 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
             observations: result.observations
         });
 
+        console.log("STEP 5: Saving to MongoDB...");
         await newRecord.save();
+        console.log("STEP 6: Saved successfully with ID:", newRecord._id);
+
         res.json(newRecord);
 
     } catch (error) {
-        console.error('Analysis Error:', error.message);
-        res.status(500).json({ error: 'AI Service Communication Failed' });
+        console.error("FINAL ERROR:", error);
+        res.status(500).json({ 
+            error: error.message,
+            detail: "Consult backend logs for STEP-by-STEP breakdown"
+        });
     }
 });
 

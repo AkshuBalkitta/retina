@@ -90,24 +90,30 @@ def overlay_heatmap(heatmap, original_img):
     superimposed_img = cv2.addWeighted(original_img, 0.6, heatmap, 0.4, 0)
     return superimposed_img
 
-# 2. VALIDATION (Optimized for High-Quality Clinical Scans)
+# 2. VALIDATION (Lenient but effective for Clinical Scans)
 def validate_retina_image(image_bytes):
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        stats = ImageStat.Stat(img)
-        r, g, b = stats.mean
         
-        if r < b or r < 30:
-            return False, "Incorrect color balance (Logos/Graphics detected)."
-            
-        gray = ImageOps.grayscale(img)
-        edges = gray.filter(ImageFilter.FIND_EDGES)
-        edge_max = ImageStat.Stat(edges).extrema[0][1]
+        # 1. Size Check
+        width, height = img.size
+        if width < 100 or height < 100:
+            return False, "Resolution too low for clinical analysis."
 
+        # 2. Biological Texture Check (Greyscale standard deviation)
+        gray = ImageOps.grayscale(img)
+        stats = ImageStat.Stat(gray)
         std_dev = stats.stddev[0]
-        if std_dev < 3:
-             return False, "Image lacks organic biological texture."
+        
+        # Solid colors or simple graphics have very low std_dev
+        if std_dev < 2:
+             return False, "Image lacks organic biological texture (detected graphic/solid color)."
              
+        # 3. Brightness check (Avoid completely black images)
+        mean_brightness = stats.mean[0]
+        if mean_brightness < 10:
+            return False, "Image is too dark for analysis."
+
         return True, "Valid"
     except Exception as e:
         return False, f"Validation Error: {str(e)}"

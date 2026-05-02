@@ -68,13 +68,15 @@ export default function UploadPage() {
         const errorData = await response.json();
         console.error("Backend error:", errorData);
         
-        // Professional SweetAlert for validation errors
+        // Show specific error if available, else fallback
+        const errorMessage = errorData.detail || errorData.error || "Wrong image uploaded or service unavailable.";
+        
         Swal.fire({
-          title: "Invalid Upload",
-          text: "wrong image uploaded .. upload a retina image",
+          title: "Upload Failed",
+          text: errorMessage,
           icon: "error",
           confirmButtonColor: "#2e7d32",
-          confirmButtonText: "I'll upload a retina scan"
+          confirmButtonText: "Try Again"
         });
       }
     } catch (error) {

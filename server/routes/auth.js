@@ -19,8 +19,6 @@ router.post('/signup', async (req, res) => {
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
-    // 👇 THIS IS THE NEW LINE TO SHOW THE ERROR IN YOUR TERMINAL
-    console.error("SIGNUP ERROR DETAILS:", error);
     res.status(500).json({ message: 'Server error during signup' });
   }
 });
